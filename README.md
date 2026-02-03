@@ -11,9 +11,10 @@
 - 🟢 四种状态自动判断：加载中 / 正常 / 部分异常 / 错误
 - 🎨 精美的 CSS 动画效果（呼吸、脉冲、闪烁）
 - 🔄 自动轮询刷新（默认 5 分钟）
-- 📍 自动插入到 ICP 备案号旁边
+- 📍 智能插入位置：优先备案号旁边，支持备选位置
 - 🔒 通过 PHP 代理保护 API Key
 - 📦 无依赖，纯原生 JavaScript
+- 🎯 兼容安知鱼主题结构
 
 ## 📋 效果预览
 
@@ -139,7 +140,14 @@ const CONFIG = {
   pollInterval: 5 * 60 * 1000,
 
   // ICP 备案号匹配正则
-  icpPattern: /[京津沪渝冀豫云辽黑湘皖鲁新苏浙赣鄂桂甘晋蒙陕吉闽贵粤青藏川宁琼]ICP备\d+号?-?\d*/
+  icpPattern: /[京津沪渝冀豫云辽黑湘皖鲁新苏浙赣鄂桂甘晋蒙陕吉闽贵粤青藏川宁琼]ICP备\d+号?-?\d*/,
+
+  // 备选插入位置（当没有备案号时使用）
+  fallbackSelectors: [
+    { selector: '.record-info', mode: 'append' },
+    { selector: '.bar-left', mode: 'createWrapper' },
+    { selector: 'footer', mode: 'append' }
+  ]
 };
 ```
 
@@ -190,7 +198,14 @@ const CONFIG = {
   
   pollInterval: 5 * 60 * 1000,
   insertCheckInterval: 500,
-  icpPattern: /[京津沪渝冀豫云辽黑湘皖鲁新苏浙赣鄂桂甘晋蒙陕吉闽贵粤青藏川宁琼]ICP备\d+号?-?\d*/
+  icpPattern: /[京津沪渝冀豫云辽黑湘皖鲁新苏浙赣鄂桂甘晋蒙陕吉闽贵粤青藏川宁琼]ICP备\d+号?-?\d*/,
+  
+  // 备选插入位置
+  fallbackSelectors: [
+    { selector: '.record-info', mode: 'append' },
+    { selector: '.bar-left', mode: 'createWrapper' },
+    { selector: 'footer', mode: 'append' }
+  ]
 };
 ```
 
@@ -212,25 +227,25 @@ curl -X POST https://your-domain.com/status.php \
 
 ```css
 /* 正常状态 - 绿色 */
-.footer-uptime-link.status-ok .footer-uptime-dot {
+.uptime-status-indicator.status-ok .status-dot {
   background-color: #10b981;
   box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
 }
 
 /* 部分异常 - 橙色 */
-.footer-uptime-link.status-partial .footer-uptime-dot {
+.uptime-status-indicator.status-partial .status-dot {
   background-color: #f59e0b;
   box-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
 }
 
 /* 错误状态 - 红色 */
-.footer-uptime-link.status-error .footer-uptime-dot {
+.uptime-status-indicator.status-error .status-dot {
   background-color: #ef4444;
   box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
 }
 
 /* 加载中 - 灰色 */
-.footer-uptime-link.status-loading .footer-uptime-dot {
+.uptime-status-indicator.status-loading .status-dot {
   background-color: #9ca3af;
 }
 ```
@@ -249,6 +264,19 @@ const STATUS_TEXT = {
 ### 自定义插入位置
 
 默认会自动插入到 ICP 备案号后面，如需自定义：
+
+**方式一：修改备选选择器**
+
+```javascript
+fallbackSelectors: [
+  { selector: '.record-info', mode: 'append' },      // 在 .record-info 内部末尾
+  { selector: '.bar-left', mode: 'createWrapper' },  // 创建 .record-info 包装器
+  { selector: '.copyright-info', mode: 'after' },    // 在元素后面（同级）
+  { selector: 'footer', mode: 'append' }             // 在 footer 内部末尾
+]
+```
+
+**方式二：手动指定位置**
 
 ```javascript
 function insertIndicator() {
@@ -293,6 +321,31 @@ else                 → error   // 全部异常
 
 ---
 
+## 📍 插入位置说明
+
+指示器会按以下优先级自动选择插入位置：
+
+1. **ICP 备案号旁边**（如有）
+2. **`.record-info` 容器内**（安知鱼主题标准位置）
+3. **`.bar-left` 内创建 `.record-info` 包装器**
+4. **其他备选位置**（footer 等）
+
+生成的 HTML 结构：
+
+```html
+<div class="bar-left">
+  <div class="copyright-info">©2020 - 2026 By 安知鱼</div>
+  <div class="record-info">
+    <a class="uptime-status-indicator status-ok" href="..." target="_blank">
+      <span class="status-dot"></span>
+      <span class="status-text">所有业务正常</span>
+    </a>
+  </div>
+</div>
+```
+
+---
+
 ## ❓ 常见问题
 
 ### Q1: 状态一直显示"获取失败"
@@ -324,7 +377,19 @@ icpPattern: /备案号/
 icpPattern: /粤ICP备12345678号/
 ```
 
-### Q3: 跨域问题 (CORS)
+### Q3: 没有备案号时如何定位
+
+使用备选选择器配置：
+
+```javascript
+fallbackSelectors: [
+  { selector: '.record-info', mode: 'append' },
+  { selector: '.bar-left', mode: 'createWrapper' },  // 推荐：自动创建包装容器
+  { selector: 'footer', mode: 'append' }
+]
+```
+
+### Q4: 跨域问题 (CORS)
 
 确保 `status.php` 包含正确的 CORS 头：
 
@@ -334,7 +399,7 @@ header("Access-Control-Allow-Methods: POST, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type");
 ```
 
-### Q4: 如何关闭自动轮询
+### Q5: 如何关闭自动轮询
 
 ```javascript
 function startPolling() {
@@ -345,7 +410,7 @@ function startPolling() {
 }
 ```
 
-### Q5: 如何修改轮询间隔
+### Q6: 如何修改轮询间隔
 
 ```javascript
 // 1 分钟

@@ -5,27 +5,31 @@
   动态获取 UptimeRobot 监控状态
 -->
 <style>
-/* 状态指示器容器 */
-.footer-uptime-link {
+/* ========================================
+   状态指示器样式（兼容安知鱼主题）
+   ======================================== */
+
+/* 容器 */
+.uptime-status-indicator {
   display: inline-flex;
   align-items: center;
-  margin-left: 10px;
+  margin-left: 0px;
   font-size: 14px;
   text-decoration: none !important;
   cursor: pointer;
   transition: transform 0.2s ease;
 }
 
-.footer-uptime-link:hover {
+.uptime-status-indicator:hover {
   transform: scale(1.05);
 }
 
-.footer-uptime-link:hover .footer-uptime-dot {
+.uptime-status-indicator:hover .status-dot {
   transform: scale(1.2);
 }
 
 /* 状态点 */
-.footer-uptime-dot {
+.uptime-status-indicator .status-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
@@ -34,55 +38,55 @@
 }
 
 /* 状态文字 */
-.footer-uptime-text {
+.uptime-status-indicator .status-text {
   transition: color 0.3s;
 }
 
 /* ========== 加载中状态 ========== */
-.footer-uptime-link.status-loading .footer-uptime-dot {
+.uptime-status-indicator.status-loading .status-dot {
   background-color: #9ca3af;
   animation: statusPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
-.footer-uptime-link.status-loading .footer-uptime-text {
+.uptime-status-indicator.status-loading .status-text {
   color: #9ca3af;
 }
 
 /* ========== 正常状态 ========== */
-.footer-uptime-link.status-ok .footer-uptime-dot {
+.uptime-status-indicator.status-ok .status-dot {
   background-color: #10b981;
   box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
   animation: statusGlow 2s ease-in-out infinite;
 }
-.footer-uptime-link.status-ok .footer-uptime-text {
+.uptime-status-indicator.status-ok .status-text {
   color: #10b981;
 }
-.footer-uptime-link.status-ok:hover .footer-uptime-dot {
+.uptime-status-indicator.status-ok:hover .status-dot {
   box-shadow: 0 0 12px rgba(16, 185, 129, 0.8);
 }
 
 /* ========== 部分异常状态 ========== */
-.footer-uptime-link.status-partial .footer-uptime-dot {
+.uptime-status-indicator.status-partial .status-dot {
   background-color: #f59e0b;
   box-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
   animation: statusBlink 1.5s ease-in-out infinite;
 }
-.footer-uptime-link.status-partial .footer-uptime-text {
+.uptime-status-indicator.status-partial .status-text {
   color: #f59e0b;
 }
-.footer-uptime-link.status-partial:hover .footer-uptime-dot {
+.uptime-status-indicator.status-partial:hover .status-dot {
   box-shadow: 0 0 12px rgba(245, 158, 11, 0.8);
 }
 
 /* ========== 错误状态 ========== */
-.footer-uptime-link.status-error .footer-uptime-dot {
+.uptime-status-indicator.status-error .status-dot {
   background-color: #ef4444;
   box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
   animation: statusBlink 1s ease-in-out infinite;
 }
-.footer-uptime-link.status-error .footer-uptime-text {
+.uptime-status-indicator.status-error .status-text {
   color: #ef4444;
 }
-.footer-uptime-link.status-error:hover .footer-uptime-dot {
+.uptime-status-indicator.status-error:hover .status-dot {
   box-shadow: 0 0 12px rgba(239, 68, 68, 0.8);
 }
 
@@ -123,7 +127,7 @@
 
 /* ========== 暗色模式适配（可选） ========== */
 @media (prefers-color-scheme: dark) {
-  .footer-uptime-link.status-loading .footer-uptime-text {
+  .uptime-status-indicator.status-loading .status-text {
     color: #6b7280;
   }
 }
@@ -136,7 +140,7 @@
   // ========== 配置项 ==========
   const CONFIG = {
     // 状态页面链接（点击后跳转）
-    statusPageUrl: 'https://status.jiugg.fun/',
+    statusPageUrl: 'https://your-status-page.com/',
     // 状态 API 地址（返回状态数据的 PHP 地址）
     statusApiUrl: 'https://your-domain.com/status_api.php',
     // 轮询间隔（毫秒），5分钟
@@ -144,7 +148,15 @@
     // 初始插入检测间隔（毫秒）
     insertCheckInterval: 500,
     // ICP 备案号匹配正则
-    icpPattern: /粤ICP备\d+号?-?\d*/
+    icpPattern: /[京津沪渝冀豫云辽黑湘皖鲁新苏浙赣鄂桂甘晋蒙陕吉闽贵粤青藏川宁琼]ICP备\d+号?-?\d*/,
+    // 备选插入位置选择器（当没有 ICP 备案号时使用）
+    fallbackSelectors: [
+      { selector: '.record-info', mode: 'append' },      // 备案信息容器内（推荐）
+      { selector: '.bar-left', mode: 'createWrapper' },  // 在 .bar-left 内创建包装容器
+      { selector: '.footer-bottom-bar .bar-content', mode: 'append' },
+      { selector: 'footer', mode: 'append' },
+      { selector: '#footer', mode: 'append' }
+    ]
   };
 
   // ========== 状态文字映射 ==========
@@ -166,11 +178,11 @@
     uptime.href = CONFIG.statusPageUrl;
     uptime.target = '_blank';
     uptime.rel = 'noopener';
-    uptime.className = 'footer-uptime-link status-loading';
+    uptime.className = 'uptime-status-indicator status-loading';
     uptime.title = '查看我的项目状态';
     uptime.innerHTML = `
-      <span class="footer-uptime-dot"></span>
-      <span class="footer-uptime-text">${STATUS_TEXT.loading}</span>
+      <span class="status-dot"></span>
+      <span class="status-text">${STATUS_TEXT.loading}</span>
     `;
     return uptime;
   }
@@ -181,13 +193,11 @@
     
     currentStatus = status;
     
-    // 移除所有状态类
-    uptimeElement.classList.remove('status-loading', 'status-ok', 'status-partial', 'status-error');
-    // 添加新状态类
-    uptimeElement.classList.add('status-' + status);
+    // 切换状态类
+    uptimeElement.className = 'uptime-status-indicator status-' + status;
     
     // 更新文字
-    const textEl = uptimeElement.querySelector('.footer-uptime-text');
+    const textEl = uptimeElement.querySelector('.status-text');
     if (textEl) {
       textEl.textContent = STATUS_TEXT[status] || STATUS_TEXT.error;
     }
@@ -234,8 +244,13 @@
   }
 
   // ========== 插入状态指示器 ==========
-  function insertFooterUptime() {
-    // 找到 ICP 备案号元素
+  function insertIndicator() {
+    // 防止重复插入
+    if (document.querySelector('.uptime-status-indicator')) {
+      return true;
+    }
+
+    // 方案一：优先查找 ICP 备案号
     const candidates = Array.from(
       document.querySelectorAll('body *')
     ).filter(el => {
@@ -243,23 +258,40 @@
              CONFIG.icpPattern.test(el.innerText);
     });
 
-    if (!candidates.length) return false;
-
-    // 一般左下角的是最后一个
-    const icpTextEl = candidates[candidates.length - 1];
-
-    // 防止重复插入
-    if (icpTextEl.nextSibling &&
-        icpTextEl.nextSibling.classList &&
-        icpTextEl.nextSibling.classList.contains('footer-uptime-link')) {
+    if (candidates.length) {
+      const icpTextEl = candidates[candidates.length - 1];
+      uptimeElement = createUptimeElement();
+      icpTextEl.parentNode.insertBefore(uptimeElement, icpTextEl.nextSibling);
+      console.log('[UptimeIndicator] 已插入到 ICP 备案号旁边');
       return true;
     }
 
-    // 创建并插入状态指示器
-    uptimeElement = createUptimeElement();
-    icpTextEl.parentNode.insertBefore(uptimeElement, icpTextEl.nextSibling);
+    // 方案二：使用备选选择器
+    for (const item of CONFIG.fallbackSelectors) {
+      const targetEl = document.querySelector(item.selector);
+      if (targetEl) {
+        uptimeElement = createUptimeElement();
+        
+        if (item.mode === 'append') {
+          // 在元素内部末尾插入
+          targetEl.appendChild(uptimeElement);
+        } else if (item.mode === 'createWrapper') {
+          // 创建包装容器（模拟 .record-info 结构）
+          const wrapper = document.createElement('div');
+          wrapper.className = 'record-info';
+          wrapper.appendChild(uptimeElement);
+          targetEl.appendChild(wrapper);
+        } else {
+          // 在元素后面插入（after）
+          targetEl.parentNode.insertBefore(uptimeElement, targetEl.nextSibling);
+        }
+        
+        console.log('[UptimeIndicator] 已插入到备选位置:', item.selector);
+        return true;
+      }
+    }
 
-    return true;
+    return false;
   }
 
   // ========== 开始轮询状态 ==========
@@ -276,7 +308,7 @@
   function init() {
     // 轮询检测是否可以插入元素
     let insertTimer = setInterval(() => {
-      if (insertFooterUptime()) {
+      if (insertIndicator()) {
         clearInterval(insertTimer);
         // 插入成功后开始轮询状态
         startPolling();
